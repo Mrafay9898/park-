@@ -20,7 +20,7 @@ def timeit(fn: Callable):
 @timeit
 def load_data(path: str) -> pd.DataFrame:
     """Load and clean CSV data"""
-    df = pd.read_csv("book1, encoding="latin-1")
+    df = pd.read_csv("path, encoding="latin-1")
     
     # Normalize column names
     df.columns = (
@@ -155,4 +155,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
