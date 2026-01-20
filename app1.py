@@ -1,6 +1,6 @@
 import time
-from dataclasses import dataclass
 from typing import Callable, Dict
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -20,8 +20,9 @@ def timeit(fn: Callable):
 @timeit
 def load_data(path: str) -> pd.DataFrame:
     """Load and clean CSV data"""
-    df = pd.read_csv("Path, encoding="latin-1")
-    
+    # CSV load (latin-1, jaise tumhari file ke liye use kar rahe thay)
+    df = pd.read_csv(path, encoding="latin-1")
+
     # Normalize column names
     df.columns = (
         df.columns
@@ -30,15 +31,13 @@ def load_data(path: str) -> pd.DataFrame:
         .str.replace(" ", "_")
         .str.replace(r"[^a-z0-9_]", "", regex=True)
     )
-    
+
     # Convert price to numeric (handle errors)
     if "price" in df.columns:
         df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    
-    # Remove rows with missing prices for slider
-    if "price" in df.columns:
+        # Remove rows with missing prices for slider
         df = df.dropna(subset=["price"])
-    
+
     return df
 
 # -------------------- Filter Engine --------------------
@@ -82,24 +81,28 @@ def build_sidebar(df: pd.DataFrame, engine: FilterEngine):
     if "visitor_reviews" in df.columns:
         reviews = df["visitor_reviews"].dropna().unique().tolist()
         review_sel = st.sidebar.multiselect(
-            "Visitor Reviews", 
-            options=reviews, 
+            "Visitor Reviews",
+            options=reviews,
             default=reviews[:3] if len(reviews) > 3 else reviews
         )
-        engine.add_filter("reviews", lambda d: d[d["visitor_reviews"].isin(review_sel)])
+        if review_sel:
+            engine.add_filter("reviews", lambda d: d[d["visitor_reviews"].isin(review_sel)])
 
     # Price range filter
     if "price" in df.columns and not df["price"].isna().all():
         price_min = float(df["price"].min())
         price_max = float(df["price"].max())
         price_range = st.sidebar.slider(
-            "Ticket Price Range ($)", 
-            min_value=price_min, 
-            max_value=price_max, 
+            "Ticket Price Range ($)",
+            min_value=price_min,
+            max_value=price_max,
             value=(price_min, price_max),
             step=0.1
         )
-        engine.add_filter("price", lambda d: d[(d["price"] >= price_range[0]) & (d["price"] <= price_range[1])])
+        engine.add_filter(
+            "price",
+            lambda d: d[(d["price"] >= price_range[0]) & (d["price"] <= price_range[1])]
+        )
 
     # Show filtered count
     filtered_count = len(engine.apply())
@@ -112,13 +115,13 @@ def main():
     st.title("🌳 Global Parks Analytics Dashboard")
     st.caption("Filter parks by country, category, visitor reviews, and ticket price")
 
-    # Load data
+    # CSV file
     csv_file = "Book1.csv"
-    
+
     try:
         df = load_data(csv_file)
         st.success(f"✅ Loaded {len(df)} parks from {csv_file}")
-        
+
         # Show data info
         col1, col2 = st.columns(2)
         with col1:
@@ -147,14 +150,12 @@ def main():
 
     except FileNotFoundError:
         st.error(f"❌ File '{csv_file}' not found! Place it in the same folder as this script.")
-        st.info("📁 Expected structure:\n- your_app.py\n- Book1.csv")
-        
+        st.info("📁 Expected structure:\n- app1.py\n- Book1.csv")
+
     except Exception as e:
         st.error(f"❌ Error loading data: {str(e)}")
         st.info("💡 Check if Book1.csv exists and has columns like 'country', 'category', 'visitor_reviews', 'price'")
 
 if __name__ == "__main__":
     main()
-
-
 
